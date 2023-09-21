@@ -35,6 +35,11 @@ variable "ig_tags" {
   default = {}
 }
 
+variable "project_name" {
+  
+  
+}
+
 variable "public_subnet_cidr" {
   
     type =list
@@ -47,22 +52,26 @@ variable "public_subnet_cidr" {
 
 variable "public_subnet_tags" {
    
-   Name = "roboshop"
+   default = {Name = "roboshop"}
 }
+
+# variable "priavte_subnet_cidr" {
+#   default = {}
+# }
 
 variable "private_subnet_cidr" {
   
     type =list
     validation {
-      condition = length(var.priavte_subnet_cidr)==2
+      condition = length(var.private_subnet_cidr)==2
       error_message = "pls pass only 2 input cidr"
 
     }
 }
 
 variable "private_subnet_tags" {
-   
-   Name = "roboshop"
+  default = { 
+   Name = "roboshop" }
 }
 
 variable "database_subnet_cidr" {
@@ -77,7 +86,8 @@ variable "database_subnet_cidr" {
 
 variable "database_subnet_tags" {
    
-   Name = "roboshop"
+   default = { 
+   Name = "roboshop" }
 }
 
 
@@ -98,5 +108,9 @@ variable "database_route_table_tags" {
 }
 
 variable "db_subnet_group_tags" {
+  default = {}
+}
+
+variable "route_tags" {
   default = {}
 }

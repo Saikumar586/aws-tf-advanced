@@ -1,9 +1,8 @@
 resource "aws_vpc" "main" {
   
-    cidr_block = var.cidr_blocks
+    cidr_block = var.cidr_block
     enable_dns_hostnames = var.enable_dns_hostnames
     enable_dns_support = var.enable_dns_support
-
     tags = merge(var.vpc_tags, var.default_tags)
 
 }
@@ -13,28 +12,31 @@ resource "aws_internet_gateway" "gw" {
   vpc_id = aws_vpc.main.id
 
   tags = merge(
-    default_tags,ig_tags)
+    var.default_tags,var.ig_tags)
 
 }
 
 resource "aws_subnet" "public" {
   vpc_id     = aws_vpc.main.id
- count =  length(var.public_subnet )#"10.0.1.0/24"
-  cidr_block = var.public_subnet[count.index]
+ count =  length(var.public_subnet_cidr )#"10.0.1.0/24"
+  cidr_block = var.public_subnet_cidr[count.index]
  availability_zone = local.azs[count.index] # the reason using locals instead variables user cannot override the values.
     tags = merge(
-    var.default_tags, {Name = "${var.public_subnet_tags}-public-${local.azs[count.index]}"}
+    var.default_tags, 
+    {
+      Name = "${var.project_name}-public-${local.azs[count.index]}"
+      }
     )
   }
 
   resource "aws_subnet" "private" {
   vpc_id     = aws_vpc.main.id
- count =  length(var.private_subnet )#"10.0.1.0/24"
+ count =  length(var.private_subnet_cidr )#"10.0.1.0/24"
  map_public_ip_on_launch = true
-  cidr_block = var.private_subnet[count.index]
+  cidr_block = var.private_subnet_cidr[count.index]
  availability_zone = local.azs[count.index] # the reason using locals instead variables user cannot override the values.
     tags = merge(
-    var.default_tags, {Name = "${var.priavte_subnet_tags}-priavte-${local.azs[count.index]}"}
+    var.default_tags, {Name = "${var.project_name}-private-${local.azs[count.index]}"}
     )
   }
 
@@ -53,11 +55,14 @@ resource "aws_subnet" "public" {
 
 resource "aws_subnet" "database" {
   vpc_id     = aws_vpc.main.id
- count =  length(var.database_subnet )#"10.0.1.0/24"
-  cidr_block = var.database_subnet[count.index]
+ count =  length(var.database_subnet_cidr )#"10.0.1.0/24"
+  cidr_block = var.database_subnet_cidr[count.index]
  availability_zone = local.azs[count.index] # the reason using locals instead variables user cannot override the values.
     tags = merge(
-    var.default_tags, {Name = "${var.database_subnet_tags}-database-${local.azs[count.index]}"}
+    var.default_tags, 
+    {
+      Name = "${var.project_name}-database-${local.azs[count.index]}"
+      }
     )
   }
 
@@ -78,9 +83,9 @@ resource "aws_route_table" "public" {
   }
 
   tags = merge(
-    var.common_tags,
+    var.default_tags,
     {
-        Name = "${var.route_tags}-public"
+       # Name = "${var.route_tags}-public"
     },var.public_route_table_tags   
   )
 }
@@ -90,13 +95,13 @@ resource "aws_route_table" "public" {
   resource "aws_eip" "eip" {  
       domain   = "vpc"
   }
-
+#A highly available, managed Network Address Translation (NAT) service that instances in private subnets can use to connect to services in other VPCs, on-premises networks, or the internet.
 resource "aws_nat_gateway" "main" {
   allocation_id = aws_eip.eip.id
   subnet_id     = aws_subnet.public[0].id
 
   tags = merge(
-    var.common_tags,
+    var.default_tags,
     {
         Name = var.project_name
     },
@@ -104,7 +109,7 @@ resource "aws_nat_gateway" "main" {
   )
   # To ensure proper ordering, it is recommended to add an explicit dependency
   # on the Internet Gateway for the VPC.
-  depends_on = [aws_internet_gateway.main]
+  depends_on = [aws_internet_gateway.gw]
 }
 
 
@@ -117,7 +122,7 @@ resource "aws_route_table" "private" {
   }
 
   tags = merge(
-    var.common_tags,
+    var.default_tags,
     {
         Name = "${var.project_name}-private"
     },
@@ -134,7 +139,7 @@ resource "aws_route_table" "database" {
   }
 
   tags = merge(
-    var.common_tags,
+    var.default_tags,
     {
         Name = "${var.project_name}-database"
     },
@@ -165,7 +170,7 @@ resource "aws_db_subnet_group" "roboshop" {
   subnet_ids = aws_subnet.database[*].id
 
   tags = merge(
-    var.common_tags,
+    var.default_tags,
     {
         Name = var.project_name
     },
